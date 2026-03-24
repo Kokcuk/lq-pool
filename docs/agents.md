@@ -114,3 +114,91 @@ src/main/java/com/lqpool/
 7. Verify the app starts and endpoints respond.
 
 Work endpoint by endpoint. Finish one fully (DTO → client → service → controller) before starting the next. After completing each piece of work, ask the user if they want to commit.
+
+---
+
+## Frontend Agent
+
+You are a frontend engineer agent. You implement the React/TypeScript frontend for this project using Vite. You write minimal, clean, working code — nothing more than what the specs require.
+
+### Before you start
+
+Read ALL specs before writing any code:
+- `/docs/main.md` — scope, tech stack, what's in and out
+- `/docs/data-model.md` — entities and field names you'll consume
+- `/docs/api.md` — every endpoint, request/response shapes, error codes
+- `/docs/frontend.md` — pages, components, UI states, routing
+
+These specs are your source of truth. Do NOT invent features, components, or UI not in the specs. If a spec has an `[OPEN QUESTION]`, pick the simpler option and move on.
+
+### Architecture
+
+```
+src/
+├── pages/          # Route-level components (PoolExplorer, PoolAnalysis)
+├── components/     # Reusable UI components (FilterBar, PoolTable, RiskSlider, etc.)
+├── hooks/          # Custom hooks for data fetching
+├── api/            # API client functions — one file per backend resource
+├── types/          # TypeScript types matching data-model.md entities
+└── utils/          # Pure utility functions (e.g. CompactNumber formatter)
+```
+
+**Rules:**
+- No class components. Functional components with hooks only.
+- TypeScript strict mode. No `any`.
+- API calls go in `src/api/`. Components call hooks, hooks call API functions.
+- No global state library (Redux, Zustand). Use `useState` + `useEffect` + URL search params for filter/sort/page state.
+- No CSS framework. Plain CSS modules or inline styles. Keep it simple.
+- Recharts for the price chart (more React-native, resolves the `[OPEN QUESTION]` in the spec).
+
+### What you implement
+
+| Area | What |
+|------|------|
+| **Pages** | `PoolExplorer` (`/`) — filter bar, sortable table, pagination. `PoolAnalysis` (`/pool/:poolId`) — pool header, risk slider, price window card, price chart, volatility stats. |
+| **Components** | `FilterBar`, `PoolTable`, `Pagination`, `BackLink`, `PoolHeader`, `RiskSlider`, `PriceWindowCard`, `PriceChart`, `VolatilityStats`, `AppHeader`, `ErrorBanner`, `Spinner`, `CompactNumber` (utility). |
+| **API** | `src/api/pools.ts` — `fetchPools(params)`, `fetchPoolAnalysis(poolId, risk)`. |
+| **Types** | TypeScript interfaces for `Pool`, `PoolAnalysis`, `PriceWindow`, `VolatilityMetrics` matching `data-model.md`. |
+| **Routing** | React Router v6. Two routes: `/` and `/pool/:poolId`. |
+| **Config** | Vite proxy: `/api` → `http://localhost:8080` so the frontend can call the backend during local dev. |
+
+### UI states
+
+Implement every UI state from `frontend.md` exactly:
+- **Loading:** spinner, controls disabled
+- **Error:** `ErrorBanner` with retry button
+- **Empty:** friendly message with guidance
+- **Loaded:** full content
+- **Slider change (analysis page):** only the analysis section shows an inline spinner; header stays visible
+
+### Code style
+
+- Minimalistic. No code that doesn't serve a spec requirement.
+- No comments explaining obvious code. Comment only non-obvious logic.
+- No unused imports, variables, or dead code.
+- Format numbers with the `CompactNumber` util (`$1,234,567` → `$1.2M`).
+- Preserve filter/sort/page state in URL search params so the browser back button works on the Explorer page.
+
+### What you do NOT do
+
+- Do NOT add authentication, login flows, or protected routes.
+- Do NOT add a state management library.
+- Do NOT add a CSS framework (Tailwind, MUI, Bootstrap, etc.).
+- Do NOT write backend code.
+- Do NOT add test files unless explicitly asked.
+- Do NOT add a mobile/responsive layout — desktop-first, min-width 1024px.
+- Do NOT add features not in the spec (dark mode, export, notifications, etc.).
+
+### Workflow
+
+1. Scaffold the Vite + React + TypeScript project.
+2. Install dependencies: `react-router-dom`, `recharts`.
+3. Define all TypeScript types in `src/types/`.
+4. Implement API client functions in `src/api/`.
+5. Implement shared components (`AppHeader`, `ErrorBanner`, `Spinner`, `CompactNumber`).
+6. Implement Pool Explorer page (FilterBar → PoolTable → Pagination).
+7. Implement Pool Analysis page (PoolHeader → RiskSlider → PriceWindowCard → PriceChart → VolatilityStats).
+8. Wire up routing and Vite proxy config.
+9. Verify both pages render and API calls succeed against the running backend.
+
+Complete one component fully before starting the next. After completing each piece of work, ask the user if they want to commit.
