@@ -448,7 +448,7 @@ select {
 
 ## Dev server proxy
 
-Vite config proxies `/api` to the Spring backend:
+Vite config proxies `/api` to the Node.js backend:
 
 ```js
 // vite.config.js

@@ -16,7 +16,7 @@ A localhost web tool that helps a crypto liquidity provider find profitable conc
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Java 17+, Spring MVC (REST) |
+| Backend | Node.js, Express (REST) |
 | Frontend | React (Vite) |
 | Database | None (stateless, API-passthrough) |
 | External data | DeFiLlama Yields API, CoinGecko API |

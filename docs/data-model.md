@@ -2,7 +2,7 @@ Last updated: 2026-03-24
 
 # Data Model
 
-No database. All entities below are in-memory DTOs shaped by external API responses and internal calculations. Defined as Java records / React TypeScript types.
+No database. All entities below are in-memory objects shaped by external API responses and internal calculations. Defined as plain JS objects (backend) / React TypeScript types (frontend).
 
 ---
 

@@ -6,7 +6,7 @@ A localhost web tool for crypto liquidity providers to find profitable concentra
 
 ## Tech stack
 
-- **Backend:** Java 17+, Spring MVC (REST)
+- **Backend:** Node.js, Express (REST)
 - **Frontend:** React (Vite), TypeScript
 - **Database:** None (stateless, API-passthrough)
 - **External APIs:** DeFiLlama Yields, CoinGecko
