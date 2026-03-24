@@ -8,7 +8,7 @@ A localhost web tool that helps a crypto liquidity provider find profitable conc
 
 ## Goals
 
-1. **Discover** — aggregate concentrated-liquidity pools from Uniswap v3, SushiSwap v3, and PancakeSwap v3 across all chains they support.
+1. **Discover** — aggregate concentrated-liquidity pools from Uniswap v3 across all chains it supports.
 2. **Rank** — score every pool by a profitability-vs-risk metric so the user sees the best opportunities first.
 3. **Analyze** — for a chosen pool, compute a recommended price range based on 1 year of historical price data and the user's risk tolerance (slider 1–10).
 
@@ -21,17 +21,15 @@ A localhost web tool that helps a crypto liquidity provider find profitable conc
 | Database | None (stateless, API-passthrough) |
 | External data | DeFiLlama Yields API, CoinGecko API |
 
-## Supported DEXes and chains
+## Supported DEX and chains
 
 | DEX | Chains |
 |-----|--------|
 | Uniswap v3 | Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast |
-| SushiSwap v3 | Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Fantom |
-| PancakeSwap v3 | BNB Chain, Ethereum, Arbitrum, Base, zkSync, Polygon zkEVM, Linea, opBNB |
 
 ## In-scope features (MVP)
 
-- Browse & search pools across all supported DEXes and chains
+- Browse & search Uniswap v3 pools across all supported chains
 - Ranked pool list by composite opportunity score (fee yield vs volatility)
 - Pool detail view with key metrics (TVL, volume, fee tier, APR)
 - Risk tolerance slider (1–10)

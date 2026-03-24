@@ -1,0 +1,337 @@
+openapi: 3.1.0
+info:
+  title: LQ-Pool API
+  description: Liquidity Pool Analyzer — discover, rank, and analyze concentrated-liquidity pools.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development
+
+paths:
+  /platforms:
+    get:
+      operationId: getPlatforms
+      summary: List supported DEX and its chains
+      responses:
+        "200":
+          description: Static list of platforms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Platform"
+
+  /pools:
+    get:
+      operationId: getPools
+      summary: Fetch and rank concentrated-liquidity pools
+      parameters:
+        - name: platform
+          in: query
+          description: Filter by DEX slug.
+          schema:
+            type: string
+            example: uniswap-v3
+        - name: chain
+          in: query
+          description: Filter by chain slug. Comma-separated for multiple.
+          schema:
+            type: string
+            example: ethereum,arbitrum
+        - name: minTvl
+          in: query
+          description: Minimum TVL in USD
+          schema:
+            type: number
+            default: 100000
+        - name: minVolume
+          in: query
+          description: Minimum 24h volume in USD
+          schema:
+            type: number
+            default: 10000
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            default: score
+            enum: [score, tvl, volume24h, feeApr, volatility30d]
+        - name: order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+        - name: limit
+          in: query
+          description: Max results
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Paginated list of scored pools
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolListResponse"
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: INVALID_PARAM
+                message: "sort must be one of: score, tvl, volume24h, feeApr, volatility30d"
+        "502":
+          description: External API unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: UPSTREAM_ERROR
+                message: DeFiLlama API is unavailable
+
+  /pools/{poolId}/analysis:
+    get:
+      operationId: getPoolAnalysis
+      summary: Compute safe price window for a pool
+      parameters:
+        - name: poolId
+          in: path
+          required: true
+          description: Pool identifier
+          schema:
+            type: string
+        - name: risk
+          in: query
+          description: Risk tolerance slider value
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 10
+      responses:
+        "200":
+          description: Analysis with price window, IL estimates, and price history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PoolAnalysis"
+        "400":
+          description: Invalid risk parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: INVALID_PARAM
+                message: risk must be 1-10
+        "404":
+          description: Pool not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: POOL_NOT_FOUND
+                message: "Pool 0xdead... not found"
+        "502":
+          description: External API unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: UPSTREAM_ERROR
+                message: CoinGecko API is unavailable
+
+components:
+  schemas:
+    Platform:
+      type: object
+      required: [id, name, chains]
+      properties:
+        id:
+          type: string
+          example: uniswap-v3
+        name:
+          type: string
+          example: Uniswap v3
+        chains:
+          type: array
+          items:
+            type: string
+          example: [ethereum, arbitrum, optimism, polygon, base, bsc, avalanche, celo, blast]
+
+    Token:
+      type: object
+      required: [symbol, name, address]
+      properties:
+        symbol:
+          type: string
+          example: USDC
+        name:
+          type: string
+          example: USD Coin
+        address:
+          type: string
+          example: "0xa0b8..."
+
+    Pool:
+      type: object
+      required: [id, platform, chain, token0, token1, feeTier, tvl, volume24h, feeApr, volatility30d, score]
+      properties:
+        id:
+          type: string
+          example: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+        platform:
+          type: string
+          example: uniswap-v3
+        chain:
+          type: string
+          example: ethereum
+        token0:
+          $ref: "#/components/schemas/Token"
+        token1:
+          $ref: "#/components/schemas/Token"
+        feeTier:
+          type: number
+          description: Fee tier as percentage
+          example: 0.3
+        tvl:
+          type: number
+          description: Total value locked in USD
+          example: 250000000
+        volume24h:
+          type: number
+          description: 24-hour trading volume in USD
+          example: 85000000
+        feeApr:
+          type: number
+          description: Annualized fee return as percentage
+          example: 37.23
+        volatility30d:
+          type: number
+          description: 30-day standard deviation of daily price-ratio changes (%)
+          example: 4.12
+        score:
+          type: number
+          description: Opportunity score 0-100
+          example: 78
+
+    PoolListResponse:
+      type: object
+      required: [total, pools]
+      properties:
+        total:
+          type: integer
+          example: 1243
+        pools:
+          type: array
+          items:
+            $ref: "#/components/schemas/Pool"
+
+    PriceWindow:
+      type: object
+      required: [lowerPrice, upperPrice, spreadPercent]
+      properties:
+        lowerPrice:
+          type: number
+          example: 2550.42
+        upperPrice:
+          type: number
+          example: 3450.58
+        spreadPercent:
+          type: number
+          description: Total width as % of current price
+          example: 30.0
+
+    VolatilityMetrics:
+      type: object
+      required: [stdDev1y, maxDrawdown1y, percentInRange]
+      properties:
+        stdDev1y:
+          type: number
+          description: 1-year daily standard deviation of price ratio (%)
+          example: 3.42
+        maxDrawdown1y:
+          type: number
+          description: Largest peak-to-trough move in 1 year (%)
+          example: 28.5
+        percentInRange:
+          type: number
+          description: Percentage of days price stayed within suggested window
+          example: 91.2
+
+    PricePoint:
+      type: object
+      required: [timestamp, price]
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+          example: 1679616000
+        price:
+          type: number
+          description: Price ratio (token0/token1)
+          example: 2850.30
+
+    PoolAnalysis:
+      type: object
+      required: [poolId, currentPrice, riskTolerance, confidenceLevel, priceWindow, ilAtLower, ilAtUpper, volatilityMetrics, priceHistory]
+      properties:
+        poolId:
+          type: string
+          example: "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+        currentPrice:
+          type: number
+          example: 3000.50
+        riskTolerance:
+          type: integer
+          example: 5
+        confidenceLevel:
+          type: number
+          example: 90
+        priceWindow:
+          $ref: "#/components/schemas/PriceWindow"
+        ilAtLower:
+          type: number
+          description: Estimated IL % at lower bound
+          example: -3.8
+        ilAtUpper:
+          type: number
+          description: Estimated IL % at upper bound
+          example: -3.8
+        volatilityMetrics:
+          $ref: "#/components/schemas/VolatilityMetrics"
+        priceHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/PricePoint"
+
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [INVALID_PARAM, POOL_NOT_FOUND, UPSTREAM_ERROR]
+        message:
+          type: string

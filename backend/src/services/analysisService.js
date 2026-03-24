@@ -68,13 +68,15 @@ export async function analyze(poolId, risk) {
 }
 
 function computeRatioSeries(prices0, prices1) {
+  // Align by day (timestamps from DeFiLlama differ by seconds between tokens)
+  const dayOf = ts => Math.floor(ts / 86400);
   const map1 = new Map();
   for (const p of prices1) {
-    map1.set(p.timestamp, p.price);
+    map1.set(dayOf(p.timestamp), p.price);
   }
   const result = [];
   for (const p0 of prices0) {
-    const p1 = map1.get(p0.timestamp);
+    const p1 = map1.get(dayOf(p0.timestamp));
     if (p1 && p1 !== 0) {
       result.push({ timestamp: p0.timestamp, price: p0.price / p1 });
     }
@@ -118,8 +120,6 @@ function computeVolatilityMetrics(prices, lower, upper) {
 function toDeFiLlamaCoinsChain(slug) {
   switch (slug) {
     case 'avalanche': return 'avax';
-    case 'zksync': return 'era';
-    case 'polygon-zkevm': return 'polygon_zkevm';
     default: return slug;
   }
 }

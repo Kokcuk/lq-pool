@@ -2,7 +2,7 @@
 
 ## Project overview
 
-A localhost web tool for crypto liquidity providers to find profitable concentrated-liquidity pools across Uniswap v3, SushiSwap v3, and PancakeSwap v3, and calculate safe price windows to minimize impermanent loss.
+A localhost web tool for crypto liquidity providers to find profitable concentrated-liquidity pools on Uniswap v3, and calculate safe price windows to minimize impermanent loss.
 
 ## Tech stack
 

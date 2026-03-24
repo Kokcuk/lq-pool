@@ -153,7 +153,7 @@ Two native `<select>` dropdowns side-by-side.
 
 | Dropdown | Options | Default |
 |----------|---------|---------|
-| Platform | "All", "Uniswap v3", "SushiSwap v3", "PancakeSwap v3" | "All" |
+| Platform | "All", "Uniswap v3" | "All" |
 | Chain | "All", then chains from `GET /api/platforms` for the selected platform(s) | "All" |
 
 **Behaviour:**
@@ -189,8 +189,6 @@ A plain HTML `<table>`.
 | Slug | Display |
 |------|---------|
 | `uniswap-v3` | Uni v3 |
-| `sushiswap-v3` | Sushi v3 |
-| `pancakeswap-v3` | PCS v3 |
 
 #### Component: `Pagination`
 

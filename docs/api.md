@@ -12,7 +12,7 @@ All responses use `Content-Type: application/json`. No authentication.
 
 ### GET /api/platforms
 
-List all supported DEXes and their chains.
+List the supported DEX and its chains.
 
 **Request:** none
 
@@ -24,16 +24,6 @@ List all supported DEXes and their chains.
     "id": "uniswap-v3",
     "name": "Uniswap v3",
     "chains": ["ethereum", "arbitrum", "optimism", "polygon", "base", "bsc", "avalanche", "celo", "blast"]
-  },
-  {
-    "id": "sushiswap-v3",
-    "name": "SushiSwap v3",
-    "chains": ["ethereum", "arbitrum", "optimism", "polygon", "base", "bsc", "avalanche", "fantom"]
-  },
-  {
-    "id": "pancakeswap-v3",
-    "name": "PancakeSwap v3",
-    "chains": ["bsc", "ethereum", "arbitrum", "base", "zksync", "polygon-zkevm", "linea", "opbnb"]
   }
 ]
 ```
@@ -50,7 +40,7 @@ Fetch and rank concentrated-liquidity pools. Data is fetched on-demand from exte
 
 | Param | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `platform` | `string` | no | all | Filter by DEX slug. Comma-separated for multiple: `uniswap-v3,sushiswap-v3` |
+| `platform` | `string` | no | all | Filter by DEX slug: `uniswap-v3` |
 | `chain` | `string` | no | all | Filter by chain slug. Comma-separated: `ethereum,arbitrum` |
 | `minTvl` | `number` | no | `100000` | Minimum TVL in USD |
 | `minVolume` | `number` | no | `10000` | Minimum 24h volume in USD |
@@ -157,7 +147,7 @@ Used to fetch pool listings with TVL, APY, and volume data.
 | Field | Maps to |
 |-------|---------|
 | `pool` | `Pool.id` |
-| `project` | `Pool.platform` (filter: `uniswap-v3`, `sushiswap-v3`, `pancakeswap-v3`) |
+| `project` | `Pool.platform` (filter: `uniswap-v3`) |
 | `chain` | `Pool.chain` |
 | `symbol` | Parsed into `token0.symbol` + `token1.symbol` |
 | `tvlUsd` | `Pool.tvl` |

@@ -10,12 +10,12 @@ No database. All entities below are in-memory objects shaped by external API res
 
 ### Platform
 
-Represents a supported DEX.
+Represents the supported DEX (currently Uniswap v3 only).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | `string` | Slug identifier, e.g. `uniswap-v3` |
-| `name` | `string` | Display name, e.g. `Uniswap v3` |
+| `id` | `string` | Slug identifier: `uniswap-v3` |
+| `name` | `string` | Display name: `Uniswap v3` |
 | `chains` | `string[]` | Supported chain slugs, e.g. `["ethereum", "arbitrum"]` |
 
 ```json

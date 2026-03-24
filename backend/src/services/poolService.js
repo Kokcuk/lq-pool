@@ -1,7 +1,7 @@
 import { fetchPools } from '../clients/defiLlamaClient.js';
 import { InvalidParamError } from '../middleware/errorHandler.js';
 
-const SUPPORTED_PROJECTS = new Set(['uniswap-v3', 'sushiswap-v3', 'pancakeswap-v3']);
+const SUPPORTED_PROJECTS = new Set(['uniswap-v3']);
 const VALID_SORT_FIELDS = new Set(['score', 'tvl', 'volume24h', 'feeApr', 'volatility30d']);
 
 export async function getPools(platforms, chains, minTvl, minVolume, sort, order, limit, offset) {
@@ -96,9 +96,6 @@ export function toChainSlug(chain) {
   switch (chain) {
     case 'BSC': return 'bsc';
     case 'Avalanche': return 'avalanche';
-    case 'zkSync Era': return 'zksync';
-    case 'Polygon zkEVM': return 'polygon-zkevm';
-    case 'opBNB': return 'opbnb';
     default: return chain.toLowerCase();
   }
 }
