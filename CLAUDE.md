@@ -27,4 +27,5 @@ Full specs live in `/docs`. Read them before implementing anything:
 
 ## Workflow
 
-- After completing any piece of work, **always ask the user** if they want to commit and push, with a short summary of what was done.
+- After completing any piece of work, **always ask the user** if they want to commit, with a short summary of what was done.
+- When the user says "commit", **always commit and push together**. Never ask about pushing separately.
