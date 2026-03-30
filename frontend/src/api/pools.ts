@@ -27,6 +27,8 @@ export async function fetchPools(params: PoolsParams): Promise<PoolsResponse> {
   return request<PoolsResponse>(`/pools${qs ? '?' + qs : ''}`);
 }
 
-export async function fetchPoolAnalysis(poolId: string, risk: number): Promise<PoolAnalysis> {
-  return request<PoolAnalysis>(`/pools/${encodeURIComponent(poolId)}/analysis?risk=${risk}`);
+export async function fetchPoolAnalysis(poolId: string, risk: number, deposit?: number): Promise<PoolAnalysis> {
+  const q = new URLSearchParams({ risk: String(risk) });
+  if (deposit != null && deposit > 0) q.set('deposit', String(deposit));
+  return request<PoolAnalysis>(`/pools/${encodeURIComponent(poolId)}/analysis?${q}`);
 }

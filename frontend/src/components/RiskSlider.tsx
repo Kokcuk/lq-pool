@@ -1,91 +1,52 @@
+import { useState } from 'react';
+
 interface Props {
   value: number;
-  disabled: boolean;
-  onChange: (value: number) => void;
+  loading: boolean;
+  onCommit: (value: number) => void;
 }
 
-export default function RiskSlider({ value, disabled, onChange }: Props) {
+export default function RiskSlider({ value, loading, onCommit }: Props) {
+  const [local, setLocal] = useState(value);
+
   return (
-    <div style={styles.wrap}>
-      <div style={styles.header}>
-        <span style={styles.title}>Risk Tolerance</span>
-        <span style={styles.value}>{value}</span>
+    <div style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 20, marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>Risk Tolerance</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 16, color: '#2563eb' }}>{local}</span>
+          {loading && (
+            <span style={{
+              display: 'inline-block',
+              width: 16,
+              height: 16,
+              border: '2px solid #e5e7eb',
+              borderTopColor: '#2563eb',
+              borderRadius: '50%',
+              animation: 'spin 0.6s linear infinite',
+            }} />
+          )}
+        </span>
       </div>
-      <div style={styles.sliderRow}>
-        <span style={styles.labelLeft}>Safe</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>Safe</span>
         <input
           type="range"
           min={1}
           max={10}
           step={1}
-          value={value}
-          disabled={disabled}
-          onChange={(e) => onChange(Number(e.target.value))}
-          style={styles.slider}
+          value={local}
+          onChange={(e) => setLocal(Number(e.target.value))}
+          onPointerUp={() => { if (local !== value) onCommit(local); }}
+          style={{ flex: 1, accentColor: '#2563eb', cursor: 'pointer' }}
         />
-        <span style={styles.labelRight}>Max Yield</span>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>Max Yield</span>
       </div>
-      <div style={styles.ticks}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingLeft: 36, paddingRight: 60 }}>
         {Array.from({ length: 10 }, (_, i) => (
-          <span key={i + 1} style={styles.tick}>{i + 1}</span>
+          <span key={i + 1} style={{ fontSize: 11, color: '#9ca3af' }}>{i + 1}</span>
         ))}
       </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrap: {
-    background: '#1e1e38',
-    border: '1px solid #2d2d4e',
-    borderRadius: 8,
-    padding: '16px 20px',
-    marginBottom: 20,
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  title: {
-    color: '#94a3b8',
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  value: {
-    color: '#818cf8',
-    fontWeight: 700,
-    fontSize: 16,
-  },
-  sliderRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  slider: {
-    flex: 1,
-    accentColor: '#6366f1',
-    cursor: 'pointer',
-  },
-  labelLeft: {
-    fontSize: 12,
-    color: '#64748b',
-    whiteSpace: 'nowrap',
-  },
-  labelRight: {
-    fontSize: 12,
-    color: '#64748b',
-    whiteSpace: 'nowrap',
-  },
-  ticks: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    paddingLeft: 44,
-    paddingRight: 64,
-  },
-  tick: {
-    fontSize: 11,
-    color: '#475569',
-  },
-};

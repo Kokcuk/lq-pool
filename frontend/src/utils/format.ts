@@ -9,8 +9,6 @@ export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
-export function formatPrice(value: number): string {
-  if (value >= 1000) return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
-  if (value >= 1) return value.toFixed(4);
-  return value.toFixed(6);
+export function formatCurrency(value: number): string {
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

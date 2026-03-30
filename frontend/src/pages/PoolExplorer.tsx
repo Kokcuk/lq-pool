@@ -13,8 +13,8 @@ const LIMIT = 50;
 export default function PoolExplorer() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const selectedPlatforms = searchParams.get('platform')?.split(',').filter(Boolean) ?? [];
-  const selectedChains = searchParams.get('chain')?.split(',').filter(Boolean) ?? [];
+  const selectedPlatform = searchParams.get('platform') ?? '';
+  const selectedChain = searchParams.get('chain') ?? '';
   const sort = (searchParams.get('sort') as SortField) ?? 'score';
   const order = (searchParams.get('order') as SortOrder) ?? 'desc';
   const offset = Number(searchParams.get('offset') ?? 0);
@@ -33,8 +33,8 @@ export default function PoolExplorer() {
     setError(null);
     try {
       const data = await fetchPools({
-        platform: selectedPlatforms.join(',') || undefined,
-        chain: selectedChains.join(',') || undefined,
+        platform: selectedPlatform || undefined,
+        chain: selectedChain || undefined,
         sort,
         order,
         limit: LIMIT,
@@ -46,7 +46,7 @@ export default function PoolExplorer() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPlatforms.join(','), selectedChains.join(','), sort, order, offset]);
+  }, [selectedPlatform, selectedChain, sort, order, offset]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -61,12 +61,12 @@ export default function PoolExplorer() {
     });
   }
 
-  function handlePlatformChange(values: string[]) {
-    updateParams({ platform: values.join(',') || undefined, offset: undefined });
+  function handlePlatformChange(value: string) {
+    updateParams({ platform: value || undefined, chain: undefined, offset: undefined });
   }
 
-  function handleChainChange(values: string[]) {
-    updateParams({ chain: values.join(',') || undefined, offset: undefined });
+  function handleChainChange(value: string) {
+    updateParams({ chain: value || undefined, offset: undefined });
   }
 
   function handleSort(field: SortField) {
@@ -80,53 +80,30 @@ export default function PoolExplorer() {
   }
 
   return (
-    <main style={styles.main}>
+    <main style={{ padding: '16px 24px', minWidth: 1024 }}>
       <FilterBar
         platforms={platforms}
-        selectedPlatforms={selectedPlatforms}
-        selectedChains={selectedChains}
+        selectedPlatform={selectedPlatform}
+        selectedChain={selectedChain}
         disabled={loading}
         onPlatformChange={handlePlatformChange}
         onChainChange={handleChainChange}
       />
 
-      {error && <ErrorBanner message={`Failed to load pools. ${error}`} onRetry={load} />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       {loading ? (
         <Spinner />
       ) : result && result.pools.length === 0 ? (
-        <div style={styles.empty}>
+        <div style={{ color: '#6b7280', textAlign: 'center', padding: 48, fontSize: 15 }}>
           No pools match your filters. Try broadening your selection.
         </div>
       ) : result ? (
         <>
-          <PoolTable
-            pools={result.pools}
-            sort={sort}
-            order={order}
-            onSort={handleSort}
-          />
-          <Pagination
-            total={result.total}
-            offset={offset}
-            limit={LIMIT}
-            onPageChange={handlePage}
-          />
+          <PoolTable pools={result.pools} sort={sort} order={order} onSort={handleSort} />
+          <Pagination total={result.total} offset={offset} limit={LIMIT} onPageChange={handlePage} />
         </>
       ) : null}
     </main>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  main: {
-    padding: '16px 24px',
-    minWidth: 1024,
-  },
-  empty: {
-    color: '#64748b',
-    textAlign: 'center',
-    padding: 48,
-    fontSize: 15,
-  },
-};

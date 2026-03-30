@@ -25,62 +25,26 @@ export default function Pagination({ total, offset, limit, onPageChange }: Props
   }
 
   return (
-    <div style={styles.wrap}>
-      <button
-        style={styles.btn}
-        disabled={currentPage === 1}
-        onClick={() => onPageChange(offset - limit)}
-      >
-        &lt;
+    <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '16px 0', alignItems: 'center' }}>
+      <button disabled={currentPage === 1} onClick={() => onPageChange(offset - limit)}>
+        &lt; Prev
       </button>
       {pages.map((p, i) =>
         p === '...' ? (
-          <span key={`e${i}`} style={styles.ellipsis}>...</span>
+          <span key={`e${i}`} style={{ color: '#6b7280', padding: '0 4px' }}>...</span>
         ) : (
           <button
             key={p}
-            style={{ ...styles.btn, ...(p === currentPage ? styles.active : {}) }}
+            style={p === currentPage ? { background: '#2563eb', color: '#fff', borderColor: '#2563eb' } : undefined}
             onClick={() => onPageChange((p - 1) * limit)}
           >
             {p}
           </button>
         )
       )}
-      <button
-        style={styles.btn}
-        disabled={currentPage === totalPages}
-        onClick={() => onPageChange(offset + limit)}
-      >
-        &gt;
+      <button disabled={currentPage === totalPages} onClick={() => onPageChange(offset + limit)}>
+        Next &gt;
       </button>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrap: {
-    display: 'flex',
-    gap: 4,
-    justifyContent: 'center',
-    padding: '16px 0',
-    alignItems: 'center',
-  },
-  btn: {
-    background: '#1e1e38',
-    color: '#94a3b8',
-    border: '1px solid #2d2d4e',
-    borderRadius: 4,
-    padding: '4px 10px',
-    cursor: 'pointer',
-    fontSize: 13,
-  },
-  active: {
-    background: '#6366f1',
-    color: '#fff',
-    borderColor: '#6366f1',
-  },
-  ellipsis: {
-    color: '#475569',
-    padding: '0 4px',
-  },
-};

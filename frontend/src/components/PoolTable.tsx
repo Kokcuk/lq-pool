@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Pool, SortField, SortOrder } from '../types';
-import { compactNumber } from '../utils/format';
+import { compactNumber, formatPercent } from '../utils/format';
 
 interface Props {
   pools: Pool[];
@@ -8,6 +8,10 @@ interface Props {
   order: SortOrder;
   onSort: (field: SortField) => void;
 }
+
+const PLATFORM_NAMES: Record<string, string> = {
+  'uniswap-v3': 'Uni v3',
+};
 
 const SORTABLE: { field: SortField; label: string }[] = [
   { field: 'tvl', label: 'TVL' },
@@ -17,32 +21,26 @@ const SORTABLE: { field: SortField; label: string }[] = [
   { field: 'score', label: 'Score' },
 ];
 
-const PLATFORM_NAMES: Record<string, string> = {
-  'uniswap-v3': 'Uniswap v3',
-  'sushiswap-v3': 'SushiSwap v3',
-  'pancakeswap-v3': 'PancakeSwap v3',
-};
-
 export default function PoolTable({ pools, sort, order, onSort }: Props) {
   const navigate = useNavigate();
 
   function arrow(field: SortField) {
-    if (sort !== field) return ' ↕';
-    return order === 'desc' ? ' ↓' : ' ↑';
+    if (sort !== field) return '';
+    return order === 'desc' ? ' \u25BC' : ' \u25B2';
   }
 
   return (
-    <table style={styles.table}>
+    <table>
       <thead>
         <tr>
-          <th style={styles.th}>Pair</th>
-          <th style={styles.th}>Platform</th>
-          <th style={styles.th}>Chain</th>
-          <th style={styles.th}>Fee Tier</th>
+          <th>Pair</th>
+          <th>Platform</th>
+          <th>Chain</th>
+          <th style={{ textAlign: 'right' }}>Fee</th>
           {SORTABLE.map(({ field, label }) => (
             <th
               key={field}
-              style={{ ...styles.th, ...styles.sortable }}
+              style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
               onClick={() => onSort(field)}
             >
               {label}{arrow(field)}
@@ -54,57 +52,23 @@ export default function PoolTable({ pools, sort, order, onSort }: Props) {
         {pools.map((pool) => (
           <tr
             key={pool.id}
-            style={styles.row}
-            onClick={() => navigate(`/pool/${encodeURIComponent(pool.id)}`)}
+            style={{ cursor: 'pointer' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f5f5')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            onClick={() => navigate(`/pool/${encodeURIComponent(pool.id)}`, { state: { pool } })}
           >
-            <td style={styles.td}>
-              <strong>{pool.token0.symbol}/{pool.token1.symbol}</strong>
-            </td>
-            <td style={styles.td}>{PLATFORM_NAMES[pool.platform] ?? pool.platform}</td>
-            <td style={styles.td}>{pool.chain}</td>
-            <td style={styles.td}>{pool.feeTier}%</td>
-            <td style={styles.td}>{compactNumber(pool.tvl)}</td>
-            <td style={styles.td}>{compactNumber(pool.volume24h)}</td>
-            <td style={styles.td}>{pool.feeApr.toFixed(1)}%</td>
-            <td style={styles.td}>{pool.volatility30d.toFixed(1)}%</td>
-            <td style={{ ...styles.td, ...styles.score }}>{pool.score}/100</td>
+            <td><strong>{pool.token0.symbol} / {pool.token1.symbol}</strong></td>
+            <td>{PLATFORM_NAMES[pool.platform] ?? pool.platform}</td>
+            <td>{pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1)}</td>
+            <td style={{ textAlign: 'right' }}>{pool.feeTier}%</td>
+            <td style={{ textAlign: 'right' }}>{compactNumber(pool.tvl)}</td>
+            <td style={{ textAlign: 'right' }}>{compactNumber(pool.volume24h)}</td>
+            <td style={{ textAlign: 'right' }}>{formatPercent(pool.feeApr)}</td>
+            <td style={{ textAlign: 'right' }}>{formatPercent(pool.volatility30d)}</td>
+            <td style={{ textAlign: 'right' }}>{pool.score} / 100</td>
           </tr>
         ))}
       </tbody>
     </table>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: 13,
-  },
-  th: {
-    textAlign: 'left',
-    padding: '8px 12px',
-    color: '#64748b',
-    borderBottom: '1px solid #2d2d4e',
-    fontWeight: 600,
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-  },
-  sortable: {
-    cursor: 'pointer',
-    color: '#94a3b8',
-  },
-  row: {
-    cursor: 'pointer',
-    borderBottom: '1px solid #1e1e38',
-  },
-  td: {
-    padding: '10px 12px',
-    color: '#cbd5e1',
-    whiteSpace: 'nowrap',
-  },
-  score: {
-    color: '#818cf8',
-    fontWeight: 600,
-  },
-};

@@ -1,83 +1,40 @@
 import type { PoolAnalysis } from '../types';
-import { formatPrice } from '../utils/format';
+import { formatCurrency } from '../utils/format';
 
 interface Props {
   analysis: PoolAnalysis;
 }
 
 export default function PriceWindowCard({ analysis }: Props) {
-  const { currentPrice, confidenceLevel, priceWindow, ilAtLower, ilAtUpper } = analysis;
-  const risk = analysis.riskTolerance;
-  const borderColor = risk <= 3 ? '#22c55e' : risk <= 6 ? '#f59e0b' : '#ef4444';
+  const { currentPrice, confidenceLevel, priceWindow, ilAtLower } = analysis;
 
   return (
-    <div style={{ ...styles.card, borderColor }}>
-      <div style={styles.row}>
-        <span style={styles.label}>Current Price</span>
-        <span style={styles.value}>${formatPrice(currentPrice)}</span>
+    <div style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 20, marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ color: '#6b7280', fontSize: 13 }}>Current Price</span>
+        <span style={{ fontWeight: 500 }}>{formatCurrency(currentPrice)}</span>
       </div>
-      <div style={styles.divider} />
-      <h3 style={styles.heading}>Recommended Price Window</h3>
-      <div style={styles.row}>
-        <span style={styles.label}>Lower Bound</span>
-        <span style={styles.value}>${formatPrice(priceWindow.lowerPrice)}</span>
-      </div>
-      <div style={styles.row}>
-        <span style={styles.label}>Upper Bound</span>
-        <span style={styles.value}>${formatPrice(priceWindow.upperPrice)}</span>
-      </div>
-      <div style={styles.row}>
-        <span style={styles.label}>Spread</span>
-        <span style={styles.value}>±{(priceWindow.spreadPercent / 2).toFixed(1)}%</span>
-      </div>
-      <div style={styles.row}>
-        <span style={styles.label}>Confidence</span>
-        <span style={styles.value}>{confidenceLevel}% of historical prices</span>
-      </div>
-      <div style={styles.divider} />
-      <div style={styles.row}>
-        <span style={styles.label}>Est. IL at lower bound</span>
-        <span style={{ ...styles.value, color: '#f87171' }}>{ilAtLower.toFixed(1)}%</span>
-      </div>
-      <div style={styles.row}>
-        <span style={styles.label}>Est. IL at upper bound</span>
-        <span style={{ ...styles.value, color: '#f87171' }}>{ilAtUpper.toFixed(1)}%</span>
-      </div>
+      <div style={{ borderTop: '1px solid #e5e7eb', margin: '10px 0' }} />
+      <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>Recommended Price Window</h3>
+      <Row label="Lower" value={formatCurrency(priceWindow.lowerPrice)} />
+      <Row label="Upper" value={formatCurrency(priceWindow.upperPrice)} />
+      <Row label="Spread" value={`\u00B1${(priceWindow.spreadPercent / 2).toFixed(1)}%`} />
+      <Row label="Confidence" value={`${confidenceLevel}% of historical prices stayed in this range`} />
+      <div style={{ borderTop: '1px solid #e5e7eb', margin: '10px 0' }} />
+      <Row
+        label="Est. IL at boundary"
+        value={`${ilAtLower.toFixed(1)}%`}
+        valueColor={ilAtLower < -5 ? '#dc2626' : undefined}
+      />
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  card: {
-    background: '#1e1e38',
-    border: '1px solid',
-    borderRadius: 8,
-    padding: '16px 20px',
-    marginBottom: 20,
-  },
-  heading: {
-    margin: '0 0 12px',
-    fontSize: 14,
-    color: '#94a3b8',
-    fontWeight: 600,
-  },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '5px 0',
-  },
-  label: {
-    color: '#64748b',
-    fontSize: 13,
-  },
-  value: {
-    color: '#e2e8f0',
-    fontSize: 14,
-    fontWeight: 500,
-  },
-  divider: {
-    borderTop: '1px solid #2d2d4e',
-    margin: '10px 0',
-  },
-};
+function Row({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0' }}>
+      <span style={{ color: '#6b7280', fontSize: 13 }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 500, color: valueColor }}>{value}</span>
+    </div>
+  );
+}

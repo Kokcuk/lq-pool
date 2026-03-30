@@ -96,6 +96,7 @@ Compute the safe price window for a specific pool.
 | Param | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `risk` | `integer` | no | `5` | Risk tolerance slider value 1–10 |
+| `deposit` | `number` | no | none | Deposit amount in USD. When provided, response includes `returns` object. |
 
 **Response 200:**
 
@@ -120,7 +121,20 @@ Compute the safe price window for a specific pool.
   "priceHistory": [
     { "timestamp": 1679616000, "price": 2850.30 },
     { "timestamp": 1679702400, "price": 2870.10 }
-  ]
+  ],
+  "returns": {
+    "deposit": 10000,
+    "historical": {
+      "weekly":  { "feeIncome": 71.60, "ilCost": 12.30, "netReturn": 59.30, "netReturnPercent": 0.59 },
+      "monthly": { "feeIncome": 310.25, "ilCost": 48.70, "netReturn": 261.55, "netReturnPercent": 2.62 },
+      "yearly":  { "feeIncome": 3723.00, "ilCost": 380.00, "netReturn": 3343.00, "netReturnPercent": 33.43 }
+    },
+    "projected": {
+      "weekly":  { "feeIncome": 71.60, "ilCost": 8.50, "netReturn": 63.10, "netReturnPercent": 0.63 },
+      "monthly": { "feeIncome": 310.25, "ilCost": 36.80, "netReturn": 273.45, "netReturnPercent": 2.73 },
+      "yearly":  { "feeIncome": 3723.00, "ilCost": 442.00, "netReturn": 3281.00, "netReturnPercent": 32.81 }
+    }
+  }
 }
 ```
 
@@ -129,6 +143,7 @@ Compute the safe price window for a specific pool.
 | Code | Condition | Body |
 |------|-----------|------|
 | 400 | `risk` outside 1–10 | `{ "error": "INVALID_PARAM", "message": "risk must be 1-10" }` |
+| 400 | `deposit` ≤ 0 | `{ "error": "INVALID_PARAM", "message": "deposit must be a positive number" }` |
 | 404 | Pool not found | `{ "error": "POOL_NOT_FOUND", "message": "..." }` |
 | 502 | External API unreachable | `{ "error": "UPSTREAM_ERROR", "message": "..." }` |
 

@@ -26,7 +26,8 @@ poolRoutes.get('/:poolId/analysis', async (req, res, next) => {
   try {
     const poolId = req.params.poolId;
     const risk = parseInt(req.query.risk ?? '5', 10);
-    const result = await analyze(poolId, risk);
+    const deposit = req.query.deposit != null ? Number(req.query.deposit) : null;
+    const result = await analyze(poolId, risk, deposit);
     res.json(result);
   } catch (err) {
     next(err);

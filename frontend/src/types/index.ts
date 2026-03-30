@@ -46,6 +46,26 @@ export interface PricePoint {
   price: number;
 }
 
+export interface ReturnEstimate {
+  feeIncome: number;
+  ilCost: number;
+  netReturn: number;
+  netReturnPercent: number;
+}
+
+export interface ReturnBreakdown {
+  daily: ReturnEstimate;
+  weekly: ReturnEstimate;
+  monthly: ReturnEstimate;
+  yearly: ReturnEstimate;
+}
+
+export interface Returns {
+  deposit: number;
+  historical: ReturnBreakdown;
+  projected: ReturnBreakdown;
+}
+
 export interface PoolAnalysis {
   poolId: string;
   currentPrice: number;
@@ -56,6 +76,7 @@ export interface PoolAnalysis {
   ilAtUpper: number;
   volatilityMetrics: VolatilityMetrics;
   priceHistory: PricePoint[];
+  returns?: Returns;
 }
 
 export type SortField = 'score' | 'tvl' | 'volume24h' | 'feeApr' | 'volatility30d';

@@ -176,22 +176,208 @@ The slider value (1–10) maps to how much historical price movement the window 
 
 ---
 
-## IL Estimation Formula (Concentrated Liquidity)
+### Returns
 
-For a concentrated liquidity position with range `[Pa, Pb]` and current price `P`:
+Returned as part of the analysis response when the user provides a deposit amount. Contains both historical (what you would have earned) and projected (estimated future) returns.
 
-When price moves to `P'` (still in range):
+| Field | Type | Description |
+|-------|------|-------------|
+| `deposit` | `number` | User's deposit amount in USD |
+| `historical` | `ReturnBreakdown` | Based on actual fee income and actual IL over past periods |
+| `projected` | `ReturnBreakdown` | Based on current fee APR and expected IL from the selected price window |
+
+```json
+{
+  "deposit": 10000,
+  "historical": {
+    "weekly":  { "feeIncome": 71.60, "ilCost": 12.30, "netReturn": 59.30, "netReturnPercent": 0.59 },
+    "monthly": { "feeIncome": 310.25, "ilCost": 48.70, "netReturn": 261.55, "netReturnPercent": 2.62 },
+    "yearly":  { "feeIncome": 3723.00, "ilCost": 380.00, "netReturn": 3343.00, "netReturnPercent": 33.43 }
+  },
+  "projected": {
+    "weekly":  { "feeIncome": 71.60, "ilCost": 8.50, "netReturn": 63.10, "netReturnPercent": 0.63 },
+    "monthly": { "feeIncome": 310.25, "ilCost": 36.80, "netReturn": 273.45, "netReturnPercent": 2.73 },
+    "yearly":  { "feeIncome": 3723.00, "ilCost": 442.00, "netReturn": 3281.00, "netReturnPercent": 32.81 }
+  }
+}
+```
+
+---
+
+### ReturnBreakdown
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `weekly` | `ReturnEstimate` | 7-day period |
+| `monthly` | `ReturnEstimate` | 30-day period |
+| `yearly` | `ReturnEstimate` | 365-day period |
+
+---
+
+### ReturnEstimate
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `feeIncome` | `number` | USD earned from trading fees in this period |
+| `ilCost` | `number` | USD lost to impermanent loss in this period (always positive) |
+| `netReturn` | `number` | USD net profit: `feeIncome - ilCost` (can be negative) |
+| `netReturnPercent` | `number` | Net return as % of deposit: `netReturn / deposit * 100` |
+
+---
+
+## Concentrated Liquidity Math
+
+All return and IL calculations use the full Uniswap v3 concentrated liquidity formulas. The key concept is that a deposit in a narrow range [Pa, Pb] is capital-efficient — it behaves like a much larger deposit spread across the full range.
+
+---
+
+### Capital Efficiency Multiplier
+
+For a position with range `[Pa, Pb]` and current price `P` (where `Pa ≤ P ≤ Pb`):
 
 ```
-IL = 1 - ( (sqrt(P') - sqrt(Pa)) / (sqrt(P) - sqrt(Pa)) * (sqrt(P) * (sqrt(Pb) - sqrt(P))) / (sqrt(Pb) - sqrt(Pa)) + (sqrt(Pb) - sqrt(P')) / (sqrt(Pb) - sqrt(Pa)) * (sqrt(P) * (sqrt(P) - sqrt(Pa))) / (sqrt(Pb) - sqrt(Pa)) ) / V_hold
+capitalEfficiency = sqrt(P) / (sqrt(Pb) - sqrt(Pa))
 ```
 
-Simplified approximation used for display:
+This means a $10,000 deposit in a ±10% range around $3,000 acts like ~$50,000 in a full-range position. Tighter range → higher multiplier → more fees earned per dollar.
+
+---
+
+### Fee Income (Concentrated Liquidity)
+
+Fee income depends on three factors: capital efficiency, share of liquidity, and time in range.
 
 ```
-IL_concentrated ≈ IL_classic × (P_full_range / P_concentrated_range)
+effectiveDeposit = deposit × capitalEfficiency
+userShare        = effectiveDeposit / (tvl + effectiveDeposit)
 ```
 
-Where `IL_classic = 2 × sqrt(r) / (1 + r) - 1` and `r = P'/P`.
+#### Historical fee income
 
-`[OPEN QUESTION]` Should we use the exact Uniswap v3 IL formula or the simplified approximation? The exact formula is more accurate but harder to explain to users.
+Day-by-day simulation over the period using actual price history:
+
+```
+For each day i in period (7d, 30d, 365d):
+  P_i = price ratio on day i
+
+  if Pa ≤ P_i ≤ Pb:
+    // Price is in range — LP earns fees
+    dailyFees_i = userShare × dailyVolume_i × (feeTier / 100)
+  else:
+    // Price is out of range — LP earns nothing
+    dailyFees_i = 0
+
+  feeIncome = sum(dailyFees_i)
+```
+
+Note: `capitalEfficiency` is recalculated each day using `P_i` since it shifts with price. `userShare` also shifts accordingly.
+
+#### Projected fee income
+
+Uses the current `capitalEfficiency` and `timeInRangePercent` from volatility metrics:
+
+```
+yearlyVolume        = volume24h × 365
+yearlyFeePool       = yearlyVolume × (feeTier / 100)
+yearlyFeeUser       = userShare × yearlyFeePool
+adjustedFeeIncome   = yearlyFeeUser × (timeInRangePercent / 100)
+
+For each period:
+  feeIncome = adjustedFeeIncome × (days / 365)
+```
+
+Where `timeInRangePercent` = % of days in the last year the price stayed within `[Pa, Pb]` (from `volatilityMetrics.percentInRange`).
+
+---
+
+### IL Calculation (Concentrated Liquidity)
+
+#### Position value at any price
+
+For a concentrated liquidity position with range `[Pa, Pb]`, initial deposit at price `P₀`, and current price `P`:
+
+```
+If P ≤ Pa (below range — 100% in token1):
+  V_position = L × (sqrt(Pb) - sqrt(Pa)) × (Pa / sqrt(Pa))
+  // simplified: position is entirely token1
+
+If Pa < P < Pb (in range):
+  L = depositValue / (sqrt(P₀) × (sqrt(Pb) - sqrt(P₀)) / sqrt(Pb) + (sqrt(P₀) - sqrt(Pa)))
+  V_position = L × (sqrt(P) × (sqrt(Pb) - sqrt(P)) / sqrt(Pb) + (sqrt(P) - sqrt(Pa)))
+
+If P ≥ Pb (above range — 100% in token0):
+  V_position = L × (sqrt(Pb) - sqrt(Pa))
+  // simplified: position is entirely token0
+```
+
+Where `L` = liquidity units derived from the initial deposit.
+
+#### Hold value (no LP, just hold the tokens)
+
+```
+// At entry, deposit is split: x₀ of token0, y₀ of token1
+// such that x₀ × P₀ + y₀ = deposit (in token1 terms)
+
+V_hold = x₀ × P + y₀
+```
+
+#### IL formula
+
+```
+IL = (V_position - V_hold) / V_hold
+```
+
+IL is always ≤ 0 (a loss). Expressed as a percentage.
+
+#### IL at range boundaries (for display)
+
+```
+ilAtLower = IL calculated with P = Pa
+ilAtUpper = IL calculated with P = Pb
+```
+
+These are shown in the PriceWindowCard so the user knows the worst-case IL if price hits the edge of their window.
+
+---
+
+### Historical IL
+
+Day-by-day calculation over the period:
+
+```
+For each period (7d, 30d, 365d):
+  P_start    = price ratio at start of period
+  P_end      = price ratio at end of period
+  V_position = position value at P_end (using formulas above, with P₀ = P_start)
+  V_hold     = hold value at P_end
+  ilCost     = deposit × abs((V_position - V_hold) / V_hold)
+```
+
+### Projected IL
+
+Expected IL based on the historical price distribution within the selected window:
+
+```
+// Sample N historical daily prices from the 1-year dataset
+// For each price P_i within [Pa, Pb], compute IL(P_i)
+// Weight by frequency (how many days the price was near P_i)
+
+expectedIl = weighted_average(IL(P_i) for all P_i in [Pa, Pb])
+yearlyIlCost = deposit × abs(expectedIl)
+
+For each period:
+  ilCost = yearlyIlCost × (days / 365)
+```
+
+---
+
+### Net Return
+
+For both historical and projected:
+
+```
+netReturn        = feeIncome - ilCost
+netReturnPercent = (netReturn / deposit) × 100
+```
+
+A positive `netReturn` means fees outweigh IL — the position is profitable.

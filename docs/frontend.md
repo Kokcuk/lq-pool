@@ -76,7 +76,11 @@ frontend/
 │           ├── PriceChart.jsx
 │           ├── PriceChart.css
 │           ├── VolatilityStats.jsx
-│           └── VolatilityStats.css
+│           ├── VolatilityStats.css
+│           ├── DepositInput.jsx
+│           ├── DepositInput.css
+│           ├── ReturnsCard.jsx
+│           └── ReturnsCard.css
 ```
 
 ---
@@ -259,6 +263,20 @@ Detail page for one pool. Shows safe price window and historical chart.
 ├─────────────────────────────────────────────────┤
 │  1Y Std Dev: 3.42%  │  Max Drawdown: 28.5%  │  │
 │  Days in range: 91.2%                           │
+├─────────────────────────────────────────────────┤
+│  Deposit Amount                                  │
+│  $ [  10,000  ]  [Calculate]                     │
+├─────────────────────────────────────────────────┤
+│  ┌─ Estimated Returns ─────────────────────────┐│
+│  │           Historical          Projected      ││
+│  │         Fees  IL   Net      Fees  IL   Net   ││
+│  │  Weekly  $72  -$12 $59     $72  -$9   $63   ││
+│  │          ─────────(0.59%)  ─────────(0.63%) ││
+│  │  Monthly $310 -$49 $262    $310 -$37  $273  ││
+│  │          ─────────(2.62%)  ─────────(2.73%) ││
+│  │  Yearly  $3.7K-$380$3.3K  $3.7K-$442 $3.3K ││
+│  │          ────────(33.43%)  ────────(32.81%) ││
+│  └─────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────┘
 ```
 
@@ -339,14 +357,53 @@ Three stats displayed in a horizontal row (flexbox, evenly spaced).
 | `maxDrawdown1y` | Max Drawdown | `formatPercent`, red text |
 | `percentInRange` | Days in range | `formatPercent`, green text if > 80% |
 
+#### Component: `DepositInput`
+
+A dollar amount input with a "Calculate" button.
+
+| Element | Detail |
+|---------|--------|
+| Input | `<input type="number">`, min `1`, step `any`, placeholder `e.g. 10000` |
+| Prefix | `$` label left of input |
+| Button | "Calculate" — triggers re-fetch with `deposit` param |
+
+**Behaviour:**
+- Deposit value stored as state in `PoolAnalysis` parent.
+- Clicking "Calculate" (or pressing Enter in the input) re-fetches the analysis endpoint with the current `risk` and `deposit` values.
+- If input is empty or ≤ 0, button is disabled.
+- While request is in flight, button shows "Calculating..." and is disabled.
+
+#### Component: `ReturnsCard`
+
+A table showing historical and projected returns side by side. Only rendered when `returns` is present in the API response (i.e., deposit was provided).
+
+**Table layout:**
+
+| | Historical | | | Projected | | |
+|---|---|---|---|---|---|---|
+| **Period** | **Fees** | **IL** | **Net** | **Fees** | **IL** | **Net** |
+| Weekly | $71.60 | -$12.30 | $59.30 (0.59%) | $71.60 | -$8.50 | $63.10 (0.63%) |
+| Monthly | $310.25 | -$48.70 | $261.55 (2.62%) | $310.25 | -$36.80 | $273.45 (2.73%) |
+| Yearly | $3,723 | -$380 | $3,343 (33.43%) | $3,723 | -$442 | $3,281 (32.81%) |
+
+**Formatting:**
+- Fee income: green text (`#16a34a`)
+- IL cost: red text (`#dc2626`), always shown with `-` prefix
+- Net return: green if positive, red if negative
+- Percentage shown in parentheses next to net return
+- All dollar values use `formatCurrency`; large values use `compactNumber`
+
+**Card style:** Same bordered card as `PriceWindowCard` (`border: 1px solid #e0e0e0`, `border-radius: 8px`, `padding: 20px`). Title: "Estimated Returns".
+
 #### Data fetching
 
 ```
-URL: /api/pools/{poolId}/analysis?risk={sliderValue}
+URL: /api/pools/{poolId}/analysis?risk={sliderValue}&deposit={depositValue}
 ```
 
-- Fetch on mount with `risk=5` (default slider value).
-- Re-fetch on slider `onPointerUp` with new risk value.
+- Fetch on mount with `risk=5` (no deposit — returns section hidden).
+- Re-fetch on slider `onPointerUp` with new risk value (preserves deposit if set).
+- Re-fetch on "Calculate" button click with deposit value.
 - `poolId` from `useParams()`.
 
 #### UI States
@@ -357,6 +414,8 @@ URL: /api/pools/{poolId}/analysis?risk={sliderValue}
 | **Loading** (slider change) | All previous content stays visible. Small spinner inline next to slider. Slider remains interactive. |
 | **Error** | `<ErrorBanner>` below header. Retry calls `refetch()`. |
 | **Loaded** | All sections rendered. Slider enabled. |
+| **No deposit yet** | `DepositInput` visible with empty field. `ReturnsCard` hidden. |
+| **Deposit submitted** | `ReturnsCard` rendered below `VolatilityStats` with return data. |
 | **Direct URL access** | If `useLocation().state` is null: `PoolHeader` shows only pair name (no TVL/volume/APR). Everything else works normally. |
 
 ---
