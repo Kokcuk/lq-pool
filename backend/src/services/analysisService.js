@@ -5,7 +5,7 @@ import { InvalidParamError, PoolNotFoundError } from '../middleware/errorHandler
 // Risk tolerance (1–10) → confidence level (%)
 const CONFIDENCE = [0, 99, 97, 95, 93, 90, 87, 83, 80, 75, 70];
 
-export async function analyze(poolId, risk, deposit = null) {
+export async function analyze(poolId, risk, deposit = null, customLower = null, customUpper = null) {
   if (risk < 1 || risk > 10) {
     throw new InvalidParamError('risk must be 1-10');
   }
@@ -48,8 +48,14 @@ export async function analyze(poolId, risk, deposit = null) {
 
   const lowerTail = (1.0 - confidenceLevel / 100.0) / 2.0;
   const upperTail = 1.0 - lowerTail;
-  const Pa = percentile(sorted, lowerTail);
-  const Pb = percentile(sorted, upperTail);
+  const autoLower = percentile(sorted, lowerTail);
+  const autoUpper = percentile(sorted, upperTail);
+
+  // Use custom range if provided, otherwise auto-calculated
+  const isCustomRange = customLower != null && customUpper != null
+    && customLower > 0 && customUpper > customLower;
+  const Pa = isCustomRange ? customLower : autoLower;
+  const Pb = isCustomRange ? customUpper : autoUpper;
   const spreadPercent = (Pb - Pa) / currentPrice * 100;
 
   // IL at range boundaries using concentrated liquidity formula
@@ -58,12 +64,15 @@ export async function analyze(poolId, risk, deposit = null) {
 
   const volatilityMetrics = computeVolatilityMetrics(priceValues, Pa, Pb);
 
+  const chainSlugLower = toChainSlug(pool.chain);
+
   const result = {
     poolId,
+    chain: chainSlugLower,
     currentPrice,
     riskTolerance: risk,
     confidenceLevel,
-    priceWindow: { lowerPrice: Pa, upperPrice: Pb, spreadPercent },
+    priceWindow: { lowerPrice: Pa, upperPrice: Pb, spreadPercent, isCustomRange },
     ilAtLower,
     ilAtUpper,
     volatilityMetrics,
@@ -73,12 +82,47 @@ export async function analyze(poolId, risk, deposit = null) {
   if (deposit != null) {
     const tvl = pool.tvlUsd ?? 0;
     const feeTierPct = parseFeeTier(pool.poolMeta);
-    const volumeUsd1d = pool.volumeUsd1d ?? 0;
+    // Prefer 7-day average volume over single-day snapshot (less noisy)
+    const volumeUsd7d = pool.volumeUsd7d ?? 0;
+    const volumeUsd1d = volumeUsd7d > 0
+      ? volumeUsd7d / 7
+      : (pool.volumeUsd1d ?? 0);
     result.returns = computeReturns(deposit, tvl, feeTierPct, volumeUsd1d,
       ratioSeries, Pa, Pb, volatilityMetrics.percentInRange);
+    result.gasCosts = estimateGasCosts(chainSlugLower, deposit);
   }
 
   return result;
+}
+
+// --- Gas cost estimation ---
+
+// Average gas costs in USD per operation, per chain.
+// These are ballpark estimates based on typical 2025 gas prices.
+// Mainnet is expensive; L2s are near-free post-Dencun (EIP-4844).
+const GAS_COSTS_USD = {
+  ethereum:  { open: 30,   collect: 10,  close: 20   },
+  arbitrum:  { open: 0.12, collect: 0.05, close: 0.10 },
+  base:      { open: 0.10, collect: 0.04, close: 0.08 },
+  optimism:  { open: 0.12, collect: 0.05, close: 0.10 },
+  polygon:   { open: 0.02, collect: 0.01, close: 0.02 },
+  bsc:       { open: 0.30, collect: 0.10, close: 0.20 },
+  avalanche: { open: 0.25, collect: 0.08, close: 0.15 },
+};
+const DEFAULT_GAS = { open: 5, collect: 2, close: 4 };
+
+function estimateGasCosts(chain, deposit) {
+  const costs = GAS_COSTS_USD[chain] ?? DEFAULT_GAS;
+  const total = round2(costs.open + costs.collect + costs.close);
+  const percentOfDeposit = round2(total / deposit * 100);
+  return {
+    chain,
+    open: round2(costs.open),
+    collect: round2(costs.collect),
+    close: round2(costs.close),
+    total,
+    percentOfDeposit,
+  };
 }
 
 // --- Concentrated liquidity math ---
@@ -134,6 +178,7 @@ function concentratedIL(P0, P, Pa, Pb) {
 
 function computeReturns(deposit, tvl, feeTierPct, volumeUsd1d, ratioSeries, Pa, Pb, percentInRange) {
   const currentPrice = ratioSeries[ratioSeries.length - 1].price;
+  const userShare = deposit / (tvl + deposit);
 
   // Historical: day-by-day simulation using actual prices
   function historicalPeriod(days) {
@@ -142,9 +187,6 @@ function computeReturns(deposit, tvl, feeTierPct, volumeUsd1d, ratioSeries, Pa, 
 
     const P0 = slice[0].price;
     let feeIncome = 0;
-
-    // Day-by-day fee simulation
-    const userShare = deposit / (tvl + deposit);
 
     for (const pt of slice) {
       const Pi = pt.price;
@@ -169,10 +211,8 @@ function computeReturns(deposit, tvl, feeTierPct, volumeUsd1d, ratioSeries, Pa, 
     };
   }
 
-  // Projected: based on current capital efficiency and time-in-range %
+  // Projected: based on time-in-range % and volume averages
   function projectedPeriod(days) {
-    const userShare = deposit / (tvl + deposit);
-
     const yearlyVolume = volumeUsd1d * 365;
     const yearlyFeePool = yearlyVolume * (feeTierPct / 100);
     const yearlyFeeUser = userShare * yearlyFeePool;

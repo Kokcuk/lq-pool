@@ -33,6 +33,7 @@ export interface PriceWindow {
   lowerPrice: number;
   upperPrice: number;
   spreadPercent: number;
+  isCustomRange: boolean;
 }
 
 export interface VolatilityMetrics {
@@ -60,6 +61,15 @@ export interface ReturnBreakdown {
   yearly: ReturnEstimate;
 }
 
+export interface GasCosts {
+  chain: string;
+  open: number;
+  collect: number;
+  close: number;
+  total: number;
+  percentOfDeposit: number;
+}
+
 export interface Returns {
   deposit: number;
   historical: ReturnBreakdown;
@@ -68,6 +78,7 @@ export interface Returns {
 
 export interface PoolAnalysis {
   poolId: string;
+  chain: string;
   currentPrice: number;
   riskTolerance: number;
   confidenceLevel: number;
@@ -77,6 +88,7 @@ export interface PoolAnalysis {
   volatilityMetrics: VolatilityMetrics;
   priceHistory: PricePoint[];
   returns?: Returns;
+  gasCosts?: GasCosts;
 }
 
 export type SortField = 'score' | 'tvl' | 'volume24h' | 'feeApr' | 'volatility30d';

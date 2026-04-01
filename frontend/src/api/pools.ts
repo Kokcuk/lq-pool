@@ -27,8 +27,17 @@ export async function fetchPools(params: PoolsParams): Promise<PoolsResponse> {
   return request<PoolsResponse>(`/pools${qs ? '?' + qs : ''}`);
 }
 
-export async function fetchPoolAnalysis(poolId: string, risk: number, deposit?: number): Promise<PoolAnalysis> {
+export async function fetchPoolAnalysis(
+  poolId: string,
+  risk: number,
+  deposit?: number,
+  customRange?: { lower: number; upper: number },
+): Promise<PoolAnalysis> {
   const q = new URLSearchParams({ risk: String(risk) });
   if (deposit != null && deposit > 0) q.set('deposit', String(deposit));
+  if (customRange) {
+    q.set('lowerPrice', String(customRange.lower));
+    q.set('upperPrice', String(customRange.upper));
+  }
   return request<PoolAnalysis>(`/pools/${encodeURIComponent(poolId)}/analysis?${q}`);
 }
